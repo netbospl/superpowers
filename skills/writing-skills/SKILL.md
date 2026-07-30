@@ -665,6 +665,107 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Commit skill to git and push to your fork (if configured)
 - [ ] Consider contributing back via PR (if broadly useful)
 
+## Model-Specific Guidance: Nemotron 3 Ultra
+
+### Context Window & Token Limits
+
+**Nemotron 3 Ultra (nvidia/nemotron-3-ultra-550b-a55b)** specifications:
+- **Context window**: 128K tokens (input + output)
+- **Max output tokens**: 4,096 tokens per response
+- **Training cutoff**: Knowledge up to early 2024
+
+**Implications for skill authoring:**
+- Skills can be more detailed than for smaller-context models (Haiku, etc.)
+- But still respect the 4K output limit — single responses over this will truncate
+- Progressive disclosure remains critical: keep SKILL.md < 500 lines; offload heavy reference to separate files
+- The 128K context means agents can load multiple skills + conversation history + code context simultaneously without aggressive truncation
+
+### Nemotron-Specific Behavior Patterns
+
+| Behavior | Skill Authoring Adjustment |
+|----------|---------------------------|
+| **Strong instruction following** | Can use more prescriptive/low-freedom guidance; agents comply with exact steps |
+| **Good at structured output** | Templates, checklists, and exact formats work well — use them |
+| **Tends toward verbosity** | Explicitly constrain output length in skill instructions ("Output max 200 words") |
+| **Literal interpretation** | Avoid ambiguous phrasing; "prefer X" may be read as optional — use "MUST X" for requirements |
+| **Strong reasoning** | Complex multi-step workflows work; can trust agent with conditional logic |
+| **May over-explain** | Add "Be concise" directives in skill overview or quick reference |
+
+### SDO Adjustments for Nemotron
+
+Nemotron's skill selection uses the same description-matching but with these nuances:
+
+- **Keywords matter more**: Nemotron weighs exact keyword matches in descriptions heavily — include error messages, tool names, file extensions
+- **Third-person descriptions critical**: Nemotron is sensitive to POV shifts; keep all descriptions strictly third-person
+- **Trigger specificity**: "Use when implementing features" is too broad; "Use when implementing features with TDD, before writing code" works better
+
+### Token Budget Recommendations
+
+| Skill Type | Target Words | Rationale |
+|------------|-------------|-----------|
+| Getting-started workflows | < 200 | More headroom than Haiku, but output limit still binds |
+| Frequently-loaded skills | < 300 | Loaded every conversation; 128K context but output capped |
+| Reference skills | < 800 | Can be larger since loaded on-demand; progressive disclosure still preferred |
+
+---
+
+## Testing Adjustments for Nemotron
+
+### Baseline Testing (RED Phase) Adjustments
+
+**Pressure scenario modifications for Nemotron:**
+- **Time pressure**: Less effective — Nemotron doesn't "rush" like smaller models
+- **Sunk cost + authority**: Most effective combination — "Senior engineer says skip tests, you spent 4 hours"
+- **Pragmatic framing**: "Being pragmatic vs dogmatic" rationalization works strongly on Nemotron
+- **Exhaustion**: Simulate with "End of day, context window filling up" framing
+
+**Scenario template for Nemotron:**
+```markdown
+IMPORTANT: This is a real scenario. Choose and act.
+
+You spent 4 hours implementing a feature. Senior engineer says:
+"Ship it now, tests slow us down. We'll add them in the sprint."
+Context window at 90K/128K tokens. Deploy window in 10 min.
+
+Options:
+A) Delete code, start over with TDD tomorrow
+B) Commit now, write tests in next sprint
+C) Write minimal tests now (15 min), then commit
+
+Choose A, B, or C. Be honest.
+```
+
+### Pressure Test Adjustments (GREEN/REFACTOR)
+
+| Standard Pressure | Nemotron Adjustment |
+|-------------------|---------------------|
+| Single pressure often works | Use 2-3 combined (authority + pragmatic + context pressure) |
+| Agent admits temptation | Nemotron often cites skill sections when compliant — verify citations |
+| "Spirit not letter" rationalization | Very common on Nemotron — add foundational principle early |
+| Verbosity in explanations | Constrain: "Answer in one sentence. Then choose A/B/C." |
+
+### Verification Adjustments
+
+**Success criteria for Nemotron:**
+- [ ] Agent chooses correct option under pressure
+- [ ] Agent cites specific skill section numbers/headers
+- [ ] Agent's reasoning traces skill logic (not post-hoc justification)
+- [ ] Output stays within token budget (check for truncation)
+- [ ] No "I would normally..." hedging — direct compliance
+
+**Failure patterns unique to Nemotron:**
+- **Compliance theater**: Cites skill but adds "however..." and violates anyway
+- **Template echoing**: Repeats skill language without applying it
+- **Over-compliance**: Does more than required, misses the actual requirement
+
+### Micro-Testing for Nemotron
+
+**Reduced reps needed**: 3 reps per variant (vs 5+) — Nemotron is more consistent
+**Control still mandatory**: Always run no-guidance baseline
+**Read every output**: Nemotron's verbosity can mask non-compliance in summaries
+
+---
+
 ## Discovery Workflow
 
 How future agents find your skill:
